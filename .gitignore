@@ -20,3 +20,6 @@ Thumbs.db
 
 # Environment variables
 .env
+
+# Results and logs
+results/*.csv

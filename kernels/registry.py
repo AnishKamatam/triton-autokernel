@@ -28,6 +28,7 @@ class KernelRegistry:
                 triton.cdiv(M, META['BLOCK_SIZE_M']) * triton.cdiv(N, META['BLOCK_SIZE_N']),
             )
             
+            # Separate launch metadata from kernel parameters
             launch_metadata = {}
             if "num_warps" in configs:
                 launch_metadata["num_warps"] = configs["num_warps"]

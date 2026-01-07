@@ -1,8 +1,11 @@
 import os
+import sys
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from dotenv import load_dotenv
 from llm.provider import KernelGenerator
 from kernels.registry import registry
-from benchmark import run_benchmark
+from scripts.benchmark import run_benchmark
 
 load_dotenv()
 

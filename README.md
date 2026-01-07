@@ -1,6 +1,6 @@
 # Triton Autokernel
 
-GPU benchmarking harness for Triton kernels with timing utilities and kernel registry.
+GPU kernel benchmarking harness with LLM-powered configuration generation.
 
 ## Setup
 
@@ -8,12 +8,32 @@ GPU benchmarking harness for Triton kernels with timing utilities and kernel reg
 pip install -r requirements.txt
 ```
 
+Set `OPENAI_API_KEY` in `.env` file for LLM features.
+
 ## Usage
 
 ```bash
 # Single kernel validation
-python validate.py
+python scripts/validate.py
 
-# Benchmark multiple kernel configurations
-python benchmark.py
+# Benchmark all registered kernels
+python scripts/benchmark.py
+
+# Generate LLM configs and benchmark
+python scripts/run_auto.py
+
+# Export best configuration
+python scripts/export_best.py
+```
+
+## Structure
+
+```
+triton-autokernel/
+├── kernels/          # Kernel implementations and registry
+├── utils/            # Timing and logging utilities
+├── llm/              # LLM configuration generator
+├── scripts/          # Execution scripts
+├── results/          # Benchmark history (CSV)
+└── requirements.txt
 ```

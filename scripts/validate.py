@@ -1,4 +1,8 @@
 import torch
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from kernels.matmul_template import triton_matmul
 from utils.timing import measure_runtime
 
@@ -21,3 +25,4 @@ def run_validation(M=512, N=512, K=512):
 
 if __name__ == "__main__":
     run_validation()
+
