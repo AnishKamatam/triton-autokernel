@@ -27,13 +27,24 @@ class KernelRegistry:
             grid = lambda META: (
                 triton.cdiv(M, META['BLOCK_SIZE_M']) * triton.cdiv(N, META['BLOCK_SIZE_N']),
             )
+            
+            launch_metadata = {}
+            if "num_warps" in configs:
+                launch_metadata["num_warps"] = configs["num_warps"]
+            if "num_stages" in configs:
+                launch_metadata["num_stages"] = configs["num_stages"]
+            
+            kernel_params = {k: v for k, v in configs.items() 
+                           if k not in ["num_warps", "num_stages"]}
+            
             matmul_kernel[grid](
                 a, b, c,
                 M, N, K,
                 a.stride(0), a.stride(1),
                 b.stride(0), b.stride(1),
                 c.stride(0), c.stride(1),
-                **configs
+                **kernel_params,
+                **launch_metadata
             )
             return c
         return launcher
