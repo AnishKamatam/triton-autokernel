@@ -8,7 +8,7 @@ class KernelGenerator:
         self.client = openai.OpenAI(api_key=api_key)
 
     def generate_configs(self, n=5, history_context=None, kernel_type="matmul"):
-        # Generate kernel configurations using LLM, optionally informed by previous results
+        # Generate kernel configurations using LLM, informed by previous results when available
         if kernel_type == "fused":
             base_prompt = f"""
 You are a GPU optimization expert. Suggest {n} unique configurations for a Triton Fused MatMul+Activation kernel on an A100.
@@ -33,7 +33,7 @@ Return ONLY a JSON list of dictionaries with these keys:
 - num_stages (2 to 5)
 """
 
-        # Add feedback from previous benchmarks if available
+        # Include feedback from previous benchmarks when provided
         if history_context:
             feedback_prompt = f"""
 
