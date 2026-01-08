@@ -52,7 +52,7 @@ Return ONLY a JSON list of dictionaries with these keys:
             prompt = base_prompt
 
         response = self.client.chat.completions.create(
-            model="gpt-4o",
+            model="gpt-5-2025-08-07",
             messages=[{"role": "user", "content": prompt}]
         )
         

@@ -89,7 +89,7 @@ Specialized registry for fused kernels with activation support.
 
 ### 3. LLM Integration (`llm/provider.py`)
 
-Uses OpenAI GPT-4o to generate kernel configurations:
+Uses OpenAI GPT-5-2025-08-07 to generate kernel configurations:
 
 ```python
 class KernelGenerator:
@@ -257,7 +257,7 @@ Multi-generation optimization:
 ```
 ┌─────────────────┐
 │  LLM Provider   │
-│  (GPT-4o)       │
+│  (GPT-5-2025-08-07) │
 └────────┬────────┘
          │ Generate configs
          ▼

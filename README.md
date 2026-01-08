@@ -194,4 +194,4 @@ MIT License - see LICENSE file for details.
 
 ---
 
-**Built with**: Triton, PyTorch, OpenAI GPT-4o | **Tested on**: NVIDIA A100 GPU
+**Built with**: Triton, PyTorch, OpenAI GPT-5-2025-08-07 | **Tested on**: NVIDIA A100 GPU
