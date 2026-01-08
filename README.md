@@ -1,4 +1,4 @@
-# Triton Autokernel: LLM-Powered GPU Kernel Optimization
+# Triton Autokernel: GPU Kernel Optimization
 
 A GPU kernel benchmarking and auto-tuning framework that uses Large Language Models (LLMs) to discover Triton kernel configurations. This project explores how LLM-driven optimization compares to manual tuning and standard implementations like cuBLAS.
 
