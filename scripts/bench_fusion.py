@@ -8,18 +8,22 @@ from utils.timing import measure_runtime
 from utils.roofline import analyze_roofline, print_roofline_analysis
 
 def run_comparison(M=4096, N=4096, K=4096):
+    # Generate test matrices on GPU
     a = torch.randn((M, K), device='cuda', dtype=torch.float16)
     b = torch.randn((K, N), device='cuda', dtype=torch.float16)
     
+    # Reference output: matmul + leaky_relu (non-fused)
     ref_out = torch.nn.functional.leaky_relu(torch.matmul(a, b))
     
     def pytorch_non_fused(a, b):
         return torch.nn.functional.leaky_relu(torch.matmul(a, b))
     
+    # Benchmark different implementations
     pt_ms = measure_runtime(pytorch_non_fused, (a, b), {})
     tri_default_ms = measure_runtime(lambda a, b: triton_fused_matmul(a, b, use_optimized=False), (a, b), {})
     tri_optimized_ms = measure_runtime(lambda a, b: triton_fused_matmul(a, b, use_optimized=True), (a, b), {})
     
+    # Verify correctness before reporting performance
     triton_out = triton_fused_matmul(a, b, use_optimized=True)
     if torch.allclose(ref_out, triton_out, atol=1e-2, rtol=1e-2):
         print("Correctness Check: PASSED")
@@ -31,6 +35,7 @@ def run_comparison(M=4096, N=4096, K=4096):
     print(f"Triton Fused (Default): {tri_default_ms:.3f} ms | Speedup: {pt_ms / tri_default_ms:.2f}x")
     print(f"Triton Fused (Optimized): {tri_optimized_ms:.3f} ms | Speedup: {pt_ms / tri_optimized_ms:.2f}x")
     
+    # Calculate TFLOPS: 2*M*N*K operations (multiply-add) per matrix multiply
     pt_tflops = (2.0 * M * N * K) / (pt_ms * 1e-3) / 1e12
     default_tflops = (2.0 * M * N * K) / (tri_default_ms * 1e-3) / 1e12
     optimized_tflops = (2.0 * M * N * K) / (tri_optimized_ms * 1e-3) / 1e12
@@ -56,6 +61,7 @@ def run_comparison(M=4096, N=4096, K=4096):
     print(f"PyTorch (Non-fused) AI: {pt_analysis['arithmetic_intensity']:.2f} Ops/Byte")
     print(f"Triton Fused AI: {opt_analysis['arithmetic_intensity']:.2f} Ops/Byte")
     print(f"\nKey Insight:")
+    # Fused kernel reduces memory traffic by avoiding intermediate result storage
     print(f"  Both kernels have the same arithmetic intensity (same memory access pattern)")
     print(f"  But fused kernel avoids 1 memory round-trip, improving effective bandwidth utilization")
     if tri_optimized_ms < pt_ms:

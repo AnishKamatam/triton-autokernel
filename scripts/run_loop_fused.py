@@ -11,6 +11,7 @@ from scripts.benchmark_fused import run_benchmark_fused
 load_dotenv()
 
 def get_history_summary(top_n=5, kernel_type="fused"):
+    # Extract benchmark history for fused kernels
     csv_path = "results/history.csv"
     if not os.path.exists(csv_path):
         return None
@@ -27,6 +28,7 @@ def get_history_summary(top_n=5, kernel_type="fused"):
     return summary
 
 def get_overall_best():
+    # Find best performing fused kernel configuration
     csv_path = "results/history.csv"
     if not os.path.exists(csv_path):
         return None
@@ -36,6 +38,7 @@ def get_overall_best():
     return best
 
 def main():
+    # Iterative auto-tuning for fused kernels
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
         print("Please set OPENAI_API_KEY in .env file or environment variable.")

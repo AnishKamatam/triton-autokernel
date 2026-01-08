@@ -4,6 +4,7 @@ import triton.language as tl
 from kernels.matmul_template import matmul_kernel
 
 class KernelRegistry:
+    # Registry for managing multiple kernel configurations for auto-tuning
     def __init__(self):
         self.candidates = []
 
@@ -14,26 +15,31 @@ class KernelRegistry:
         })
 
     def get_launcher(self, name):
+        # Return a launcher function for the specified kernel configuration
         for c in self.candidates:
             if c["name"] == name:
                 return self._create_launcher(c["configs"])
         return None
 
     def _create_launcher(self, configs):
+        # Create a launcher function that wraps the kernel with specific config
         def launcher(a, b):
             M, K = a.shape
             _, N = b.shape
             c = torch.empty((M, N), device=a.device, dtype=a.dtype)
+            # Compute grid size based on matrix dimensions and tile sizes
             grid = lambda META: (
                 triton.cdiv(M, META['BLOCK_SIZE_M']) * triton.cdiv(N, META['BLOCK_SIZE_N']),
             )
             
+            # Separate launch metadata (num_warps, num_stages) from kernel parameters
             launch_metadata = {}
             if "num_warps" in configs:
                 launch_metadata["num_warps"] = configs["num_warps"]
             if "num_stages" in configs:
                 launch_metadata["num_stages"] = configs["num_stages"]
             
+            # Kernel parameters (BLOCK_SIZE_*, GROUP_SIZE_M, etc.)
             kernel_params = {k: v for k, v in configs.items() 
                            if k not in ["num_warps", "num_stages"]}
             

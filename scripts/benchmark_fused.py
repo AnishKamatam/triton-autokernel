@@ -8,6 +8,7 @@ from utils.timing import measure_runtime
 from utils.logger import log_result
 
 def run_benchmark_fused(M=4096, N=4096, K=4096):
+    # Benchmark fused matmul+activation kernels
     a = torch.randn((M, K), device='cuda', dtype=torch.float16)
     b = torch.randn((K, N), device='cuda', dtype=torch.float16)
 
@@ -21,7 +22,7 @@ def run_benchmark_fused(M=4096, N=4096, K=4096):
         # Get activation type from config, default to leaky_relu
         activation = configs.get("ACTIVATION", "leaky_relu")
         
-        # Reference based on activation type
+        # Generate reference output based on activation type
         if activation == "leaky_relu":
             ref_out = torch.nn.functional.leaky_relu(torch.matmul(a, b))
         elif activation == "relu":

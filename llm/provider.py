@@ -3,10 +3,12 @@ import json
 import openai
 
 class KernelGenerator:
+    # Uses LLM to generate optimized kernel configurations based on benchmark history
     def __init__(self, api_key):
         self.client = openai.OpenAI(api_key=api_key)
 
     def generate_configs(self, n=5, history_context=None, kernel_type="matmul"):
+        # Generate kernel configurations using LLM, optionally informed by previous results
         if kernel_type == "fused":
             base_prompt = f"""
 You are a GPU optimization expert. Suggest {n} unique configurations for a Triton Fused MatMul+Activation kernel on an A100.
@@ -31,6 +33,7 @@ Return ONLY a JSON list of dictionaries with these keys:
 - num_stages (2 to 5)
 """
 
+        # Add feedback from previous benchmarks if available
         if history_context:
             feedback_prompt = f"""
 
@@ -53,6 +56,7 @@ Return ONLY a JSON list of dictionaries with these keys:
             messages=[{"role": "user", "content": prompt}]
         )
         
+        # Parse JSON response, handling code block formatting
         content = response.choices[0].message.content.strip()
         if content.startswith("```json"):
             content = content[7:-3].strip()

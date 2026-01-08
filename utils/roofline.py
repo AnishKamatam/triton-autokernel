@@ -1,16 +1,19 @@
 import torch
 
+# A100 GPU hardware specifications
 A100_MEMORY_BANDWIDTH_GBPS = 1939.0
 A100_PEAK_TFLOPS_FP16 = 312.0
 
 def calculate_arithmetic_intensity(M, N, K, dtype=torch.float16, fused=False):
+    # Arithmetic intensity = operations / bytes (higher = more compute-bound)
     bytes_per_element = 2 if dtype == torch.float16 else 4
-    total_ops = 2.0 * M * N * K
-    total_bytes = (M * K + K * N + M * N) * bytes_per_element
+    total_ops = 2.0 * M * N * K  # 2 ops per multiply-add
+    total_bytes = (M * K + K * N + M * N) * bytes_per_element  # Input + output matrices
     arithmetic_intensity = total_ops / total_bytes
     return arithmetic_intensity, total_ops, total_bytes
 
 def calculate_bandwidth_utilization(M, N, K, ms, dtype=torch.float16):
+    # Calculate how much of peak memory bandwidth is actually used
     _, _, total_bytes = calculate_arithmetic_intensity(M, N, K, dtype)
     time_seconds = ms * 1e-3
     actual_bandwidth_gbps = (total_bytes / time_seconds) / 1e9
@@ -18,12 +21,14 @@ def calculate_bandwidth_utilization(M, N, K, ms, dtype=torch.float16):
     return actual_bandwidth_gbps, utilization_percent
 
 def analyze_roofline(M, N, K, ms, tflops, dtype=torch.float16, fused=False, kernel_name=""):
+    # Roofline model: performance is limited by either memory or compute bandwidth
     ai, total_ops, total_bytes = calculate_arithmetic_intensity(M, N, K, dtype, fused)
     actual_bandwidth, bandwidth_util = calculate_bandwidth_utilization(M, N, K, ms, dtype)
     
-    memory_bound_perf = A100_MEMORY_BANDWIDTH_GBPS * ai / 1e3
-    compute_bound_perf = A100_PEAK_TFLOPS_FP16
-    roofline_limit = min(memory_bound_perf, compute_bound_perf)
+    # Compute theoretical limits
+    memory_bound_perf = A100_MEMORY_BANDWIDTH_GBPS * ai / 1e3  # TFLOPS limited by memory
+    compute_bound_perf = A100_PEAK_TFLOPS_FP16  # TFLOPS limited by compute
+    roofline_limit = min(memory_bound_perf, compute_bound_perf)  # Actual limit is the bottleneck
     is_compute_bound = memory_bound_perf > compute_bound_perf
     
     return {

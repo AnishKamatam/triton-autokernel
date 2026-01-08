@@ -9,6 +9,7 @@ from scripts.benchmark import run_benchmark
 
 load_dotenv()
 
+# Generate kernel configs using LLM and benchmark them
 api_key = os.getenv("OPENAI_API_KEY")
 if not api_key:
     print("Please set OPENAI_API_KEY in .env file or environment variable.")
@@ -18,6 +19,7 @@ gen = KernelGenerator(api_key)
 print("Requesting kernel configurations from LLM...")
 new_configs = gen.generate_configs(n=5)
 
+# Add LLM-generated configs to registry
 for i, cfg in enumerate(new_configs):
     registry.add_candidate(f"llm_variant_{i}", cfg)
 
