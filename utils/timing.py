@@ -1,7 +1,6 @@
 import torch
 
 def measure_runtime(kernel_fn, args, kwargs, n_warmup=10, n_repeat=100):
-    # Warmup to stabilize GPU state
     for _ in range(n_warmup):
         kernel_fn(*args, **kwargs)
     

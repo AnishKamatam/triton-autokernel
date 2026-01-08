@@ -1,9 +1,11 @@
 import torch
 import triton
 import triton.language as tl
+import json
+import os
 
 @triton.jit
-def matmul_kernel(
+def fused_matmul_kernel(
     a_ptr, b_ptr, c_ptr,
     M, N, K,
     stride_am, stride_ak,
@@ -11,6 +13,7 @@ def matmul_kernel(
     stride_cm, stride_cn,
     BLOCK_SIZE_M: tl.constexpr, BLOCK_SIZE_N: tl.constexpr, BLOCK_SIZE_K: tl.constexpr,
     GROUP_SIZE_M: tl.constexpr,
+    ACTIVATION: tl.constexpr,
 ):
     pid = tl.program_id(0)
     num_pid_m = tl.cdiv(M, BLOCK_SIZE_M)
@@ -26,6 +29,7 @@ def matmul_kernel(
     offs_am = (pid_m * BLOCK_SIZE_M + tl.arange(0, BLOCK_SIZE_M)) % M
     offs_bn = (pid_n * BLOCK_SIZE_N + tl.arange(0, BLOCK_SIZE_N)) % N
     offs_k = tl.arange(0, BLOCK_SIZE_K)
+    
     a_ptrs = a_ptr + (offs_am[:, None] * stride_am + offs_k[None, :] * stride_ak)
     b_ptrs = b_ptr + (offs_k[:, None] * stride_bk + offs_bn[None, :] * stride_bn)
     
@@ -37,13 +41,18 @@ def matmul_kernel(
         a_ptrs += BLOCK_SIZE_K * stride_ak
         b_ptrs += BLOCK_SIZE_K * stride_bk
     
+    if ACTIVATION == "leaky_relu":
+        accumulator = tl.where(accumulator >= 0.0, accumulator, accumulator * 0.01)
+    elif ACTIVATION == "relu":
+        accumulator = tl.maximum(accumulator, 0.0)
+    
     offs_cm = pid_m * BLOCK_SIZE_M + tl.arange(0, BLOCK_SIZE_M)
     offs_cn = pid_n * BLOCK_SIZE_N + tl.arange(0, BLOCK_SIZE_N)
     c_ptrs = c_ptr + stride_cm * offs_cm[:, None] + stride_cn * offs_cn[None, :]
     c_mask = (offs_cm[:, None] < M) & (offs_cn[None, :] < N)
     tl.store(c_ptrs, accumulator, mask=c_mask)
 
-def triton_matmul(a, b):
+def triton_fused_matmul(a, b, activation="leaky_relu", use_optimized=True):
     assert a.shape[1] == b.shape[0], "Incompatible dimensions"
     M, K = a.shape
     _, N = b.shape
@@ -51,13 +60,37 @@ def triton_matmul(a, b):
     
     grid = lambda META: (triton.cdiv(M, META['BLOCK_SIZE_M']) * triton.cdiv(N, META['BLOCK_SIZE_N']), )
     
-    matmul_kernel[grid](
+    BLOCK_SIZE_M, BLOCK_SIZE_N, BLOCK_SIZE_K = 128, 128, 32
+    GROUP_SIZE_M = 8
+    num_warps, num_stages = 4, 4
+    
+    if use_optimized:
+        try:
+            config_path = os.path.join(os.path.dirname(__file__), "best_config.json")
+            if os.path.exists(config_path):
+                with open(config_path, 'r') as f:
+                    best_config = json.load(f)
+                BLOCK_SIZE_M = best_config.get("BLOCK_SIZE_M", 128)
+                BLOCK_SIZE_N = best_config.get("BLOCK_SIZE_N", 128)
+                BLOCK_SIZE_K = best_config.get("BLOCK_SIZE_K", 32)
+                GROUP_SIZE_M = best_config.get("GROUP_SIZE_M", 8)
+                num_warps = best_config.get("num_warps", 4)
+                num_stages = best_config.get("num_stages", 4)
+        except Exception:
+            pass
+    
+    fused_matmul_kernel[grid](
         a, b, c,
         M, N, K,
         a.stride(0), a.stride(1),
         b.stride(0), b.stride(1),
         c.stride(0), c.stride(1),
-        BLOCK_SIZE_M=128, BLOCK_SIZE_N=128, BLOCK_SIZE_K=32,
-        GROUP_SIZE_M=8,
+        BLOCK_SIZE_M=BLOCK_SIZE_M,
+        BLOCK_SIZE_N=BLOCK_SIZE_N,
+        BLOCK_SIZE_K=BLOCK_SIZE_K,
+        GROUP_SIZE_M=GROUP_SIZE_M,
+        ACTIVATION=activation,
+        num_warps=num_warps,
+        num_stages=num_stages,
     )
     return c

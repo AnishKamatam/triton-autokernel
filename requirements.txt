@@ -1,5 +1,10 @@
+# Core dependencies
 torch>=2.0.0
 triton>=2.0.0
+
+# LLM integration
 openai>=1.0.0
+
+# Utilities
 python-dotenv>=1.0.0
 pandas>=2.0.0

@@ -1,9 +1,9 @@
 import torch
 import triton
 import triton.language as tl
-from kernels.matmul_template import matmul_kernel
+from kernels.fused_matmul_kernel import fused_matmul_kernel
 
-class KernelRegistry:
+class FusedKernelRegistry:
     def __init__(self):
         self.candidates = []
 
@@ -37,7 +37,10 @@ class KernelRegistry:
             kernel_params = {k: v for k, v in configs.items() 
                            if k not in ["num_warps", "num_stages"]}
             
-            matmul_kernel[grid](
+            if "ACTIVATION" not in kernel_params:
+                kernel_params["ACTIVATION"] = "leaky_relu"
+            
+            fused_matmul_kernel[grid](
                 a, b, c,
                 M, N, K,
                 a.stride(0), a.stride(1),
@@ -49,7 +52,4 @@ class KernelRegistry:
             return c
         return launcher
 
-registry = KernelRegistry()
-registry.add_candidate("small_tiles", {"BLOCK_SIZE_M": 64, "BLOCK_SIZE_N": 64, "BLOCK_SIZE_K": 32, "GROUP_SIZE_M": 8})
-registry.add_candidate("med_tiles", {"BLOCK_SIZE_M": 128, "BLOCK_SIZE_N": 128, "BLOCK_SIZE_K": 32, "GROUP_SIZE_M": 8})
-registry.add_candidate("large_tiles", {"BLOCK_SIZE_M": 256, "BLOCK_SIZE_N": 256, "BLOCK_SIZE_K": 64, "GROUP_SIZE_M": 8})
+fused_registry = FusedKernelRegistry()
